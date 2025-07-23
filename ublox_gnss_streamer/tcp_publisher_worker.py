@@ -57,21 +57,63 @@ class TcpPublisherWorker:
             if self.gnss_queue is not None and len(self.gnss_queue) > 0:
                 raw = self.gnss_queue.popleft()
 
+                # Validate lat/lon values before processing
+                try:
+                    lat_val = raw.get("lat")
+                    lon_val = raw.get("lon")
+                    
+                    # Skip if lat/lon are empty strings, None, or not convertible to float
+                    if lat_val is None or lon_val is None or lat_val == '' or lon_val == '':
+                        logger.warning(f"Skipping GNSS data with invalid lat/lon: lat={lat_val}, lon={lon_val}")
+                        continue
+                    
+                    # Try to convert to float to validate
+                    lat_float = float(lat_val)
+                    lon_float = float(lon_val)
+                    
+                    # Basic range validation for lat/lon
+                    if not (-90 <= lat_float <= 90) or not (-180 <= lon_float <= 180):
+                        logger.warning(f"Skipping GNSS data with out-of-range lat/lon: lat={lat_float}, lon={lon_float}")
+                        continue
+                        
+                except (ValueError, TypeError) as e:
+                    logger.warning(f"Skipping GNSS data with non-numeric lat/lon: lat={lat_val}, lon={lon_val}, error={e}")
+                    continue
+
                 # Determine 'type' field
+                # if raw.get("extrapolated"):
+                #     type_str = "extrapolated"
+                # elif not raw.get("gnssFixOk"):
+                #     type_str = "no-fix"
+                # elif raw.get("fixType") == 3 and raw.get("carrSoln") == 2:
+                #     type_str = "fixed-rtk"
+                # elif raw.get("fixType") == 3 and raw.get("carrSoln") == 1:
+                #     type_str = "float-rtk"
+                # elif raw.get("fixType") == 3 and raw.get("carrSoln") == 0:
+                #     type_str = "no-rtk"
+                # elif raw.get("fixType") == 4:
+                #     type_str = "dead-reckoning"
+                # else:
+                #     type_str = "no-rtk"
+                
                 if raw.get("extrapolated"):
                     type_str = "extrapolated"
-                elif not raw.get("gnssFixOk"):
+                elif raw.get("quality") == 0:
                     type_str = "no-fix"
-                elif raw.get("fixType") == 3 and raw.get("carrSoln") == 2:
+                elif raw.get("quality") == 1:
+                    type_str = "sps"
+                elif raw.get("quality") == 2:
+                    type_str = "dgps"
+                elif raw.get("quality") == 3:
+                    type_str = "pps"
+                elif raw.get("quality") == 4:
                     type_str = "fixed-rtk"
-                elif raw.get("fixType") == 3 and raw.get("carrSoln") == 1:
+                elif raw.get("quality") == 5:
                     type_str = "float-rtk"
-                elif raw.get("fixType") == 3 and raw.get("carrSoln") == 0:
-                    type_str = "no-rtk"
-                elif raw.get("fixType") == 4:
+                elif raw.get("quality") == 6:
                     type_str = "dead-reckoning"
                 else:
-                    type_str = "no-rtk"
+                    type_str = "unknown"
 
                 # Convert timestamp to KST
                 ts = raw["timestamp"]
@@ -80,13 +122,13 @@ class TcpPublisherWorker:
                 else:
                     ts = datetime.fromtimestamp(ts, tz=KST)
                     
-                # Build the schema
+                # Build the schema using validated float values
                 gnss_data = GnssDataSchema(
                     timestamp=ts,
                     gnss_time=str(raw["gnss_time"]),
-                    lat=raw["lat"],
-                    lon=raw["lon"],
-                    alt=raw["height"],
+                    lat=lat_float,
+                    lon=lon_float,
+                    # alt=raw["height"],
                     type=type_str,
                     # fixType=raw.get("fixType"),
                     # carrSoln=raw.get("carrSoln"),
