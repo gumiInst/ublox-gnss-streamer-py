@@ -125,7 +125,7 @@ class UbloxGnss:
         cfg_data = [] 
         # config Dynamic Model as automotive
         # cfg_data.append(("CFG_NAVSPG_DYNMODEL", 4)) # 4 = automotive
-        cfg_data.append(("CFG_NAVSPG_DYNMODEL", 0)) # 4 = portable
+        # cfg_data.append(("CFG_NAVSPG_DYNMODEL", 0)) # 4 = portable
         msg = UBXMessage.config_set(layers, transaction, cfg_data)
         self._send_data(msg.serialize())
         logger.debug("Sent config data to set dynamic model to automotive.")
