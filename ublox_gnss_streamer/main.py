@@ -215,7 +215,8 @@ def main(argv=None):
             gnss_raw_queue=gnss_raw_queue,
             gnss_extra_queue=gnss_extra_queue,
             # extrapolate_interval = 0.0095  # Default extrapolation interval (100 Hz)
-            extrapolate_interval = 0.008  # Default extrapolation interval (100 Hz)
+            #extrapolate_interval = 0.008  # Default extrapolation interval (100 Hz)
+            extrapolate_interval = 0.005  # Default extrapolation interval (100 Hz)
             # extrapolate_interval = 0.033  # Default extrapolation interval (30 Hz)
             # extrapolate_interval=1.0
         )
